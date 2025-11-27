@@ -1,222 +1,251 @@
 ﻿using System;
-using System.ComponentModel;
-using System.Security.Cryptography.X509Certificates;
+using System.Collections.Generic;
+using System.Text;
+
 namespace ConsoleApp1
 {
+    struct FeedItem
+    {
+        public string Name;
+        public double PricePerKg;
+        public double Weight;
+        public bool IsPremium;
+    }
+
     internal class Program
     {
-        
         static void Main(string[] args)
         {
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
-            Console.InputEncoding = System.Text.Encoding.UTF8;
-                             
+            Console.OutputEncoding = Encoding.UTF8;
+            Console.InputEncoding = Encoding.UTF8;
+
+            if (!Login())
+            {
+                return;
+            }
+
+            bool isRunning = true;
+            while (isRunning)
+            {
+                Console.Clear();
                 ShowMenu();
+
                 Console.Write("\n Виберіть опцію (1-8): ");
                 string choice = Console.ReadLine();
+
                 switch (choice)
                 {
                     case "1":
-                        Console.WriteLine("Введення даних про тварин");
-                        ;
                         ManageAnimals();
-                    Main(args);
-
-                    break;
+                        break;
                     case "2":
-                        Console.WriteLine("Ведення даних про види");
-                       
-                    ManageSpecies();
-                    Main(args);
-                    break;
+                        ManageSpecies();
+                        break;
                     case "3":
-                        Console.WriteLine("Ведення даних про доглядачів");
-                        
                         ManageCaretakers();
-                    Main(args);
-                    break;
+                        break;
                     case "4":
-                        Console.WriteLine("Графік годування");
-                        
                         ManageFeedingSchedule();
-                    Main(args);
-                    break;
+                        break;
                     case "5":
-                        Console.WriteLine("Фіксація стану здоров’я тварин");
-                        
                         ManageHealthRecords();
-                    Main(args);
-                    break;
+                        break;
                     case "6":
-                        Console.WriteLine("Фільтр тварин за видом");
-                        
                         FilterBySpecies();
-                    Main(args);
-                    break;
+                        break;
                     case "7":
-                        TicketSales();
-                    Main(args);
-
-                    break;
-                    case "8":                       
-                        
+                        PurchaseFeed();
+                        break;
+                    case "8":
                         Console.WriteLine("Вихід з програми. До побачення!");
+                        isRunning = false;
                         break;
                     default:
-                        
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine("Невірний вибір. Спробуйте ще раз.");
+                        Console.ResetColor();
                         Pause();
-                        
-                    Console.ResetColor();
-                    Main(args);
-                    break;
-                
+                        break;
+                }
             }
         }
 
-
-
-        static void TicketSales()
+        static bool Login()
         {
-            double ticketsold = 250;
-            double ticketschild = 150;
-            double ticketsstudents = 80;
-            double ticketsmilitary = 70;
-            double ticketsfamily = 600;
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("=======№№№№Вітаю в нашому Зоопарку№№№=======");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("=======Ціни на квитки======= ");
-            Console.WriteLine($"Білет для осіб 18+ {ticketsold} грн");
-            Console.WriteLine($"Білет для дітей 6-17 років {ticketschild} грн");
-            Console.WriteLine($"Білет для студентів {ticketsstudents}  грн");
-            Console.WriteLine($"Білет для військових {ticketsmilitary} грн");
-            Console.WriteLine($"Сімейний квиток (2 дорослих + 2 дітей) {ticketsfamily} грн");
-            Console.ResetColor();
-            Console.WriteLine("\n");
+            string pass = "12345";
+            int attempts = 3;
 
-
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("Введіть кількість квитків дорослих квитків:");
-            double counticketsold = Convert.ToInt32(Console.ReadLine());
-            Console.Write("Введіть кількість дитячих квитків:");
-            double counticketschild = Convert.ToInt32(Console.ReadLine());
-            Console.Write("Введіть кількість студентських квитків:");
-            double counticketsstudents = Convert.ToInt32(Console.ReadLine());
-            Console.Write("Введіть кількість військових квитків:");
-            double counticketsmilitary = Convert.ToInt32(Console.ReadLine());
-            Console.Write("Введіть кількість сімейних квитків:");
-            double counticketsfamily = Convert.ToInt32(Console.ReadLine());
-            double totalprice = (ticketsold * counticketsold) + (ticketschild * counticketschild) + (ticketsstudents * counticketsstudents) + (ticketsmilitary * counticketsmilitary) + (ticketsfamily * counticketsfamily);
-            Console.ResetColor();
-            Console.WriteLine($"Сумма вашої покупки: {totalprice}грн");
-
-            double discount = new Random().NextDouble() * 40;
-            double rounddiscount = Math.Round(discount, 0);
-            Console.WriteLine($"Знижка: {rounddiscount}%");
-            double discountamount = (totalprice * rounddiscount) / 100;
-            double finalprice = totalprice - discountamount;
-            Console.WriteLine($"Сума до оплати з урахуванням знижки: {finalprice}грн");
-            double sqrttotalprice = Math.Sqrt(finalprice);
-            double roundfinalprice = Math.Round(sqrttotalprice, 2);
-            Console.WriteLine($"Квадратний корінь від суми покупки:  {roundfinalprice}");
-            Console.WriteLine("\n");
-            Console.WriteLine("=======Деталі вашої покупки======= ");
-            Console.ForegroundColor = ConsoleColor.DarkBlue;
-            Console.WriteLine($"Ви придбали дорослих квитків  {counticketsold}");
-            Console.WriteLine($"Ви придбали дитячих квитків  {counticketschild}");
-            Console.WriteLine($"Ви придбали студентських квитків  {counticketsstudents}");
-            Console.WriteLine($"Ви придбали військових квитків  {counticketsmilitary}");
-            Console.WriteLine($"Ви придбали сімейних квитків  {counticketsfamily}");
-            Console.WriteLine($"Загальна сума без знижки: {totalprice}грн");
-            Console.WriteLine($"Сума знижки: {discountamount}грн");
-            Console.WriteLine($"Сума до оплати з урахуванням знижки: {finalprice}грн");
-            Console.ResetColor();
-            Console.WriteLine("Дякую за покупку");
-            Pause();
-        }
-
-        static double Check()
-        {
-            double choice = 0;
-            try 
+            do
             {
-                choice = Convert.ToDouble(Console.ReadLine());
-            }
-            catch (FormatException)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Помилка: введено некоректне значення. Спробуйте ще раз.");
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("=== ВХІД У СИСТЕМУ ЗООПАРКУ ===");
                 Console.ResetColor();
-                Check();
-            }
-            return choice;
+                Console.Write("Введіть пароль (адмін): ");
+                string input = Console.ReadLine();
 
+                if (input == pass)
+                {
+                    Console.WriteLine("Доступ дозволено!");
+                    System.Threading.Thread.Sleep(1000);
+                    return true;
+                }
+                else
+                {
+                    attempts--;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"Невірний пароль! Залишилось спроб: {attempts}");
+                    Console.ResetColor();
+                    Console.ReadKey();
+                }
+
+            } while (attempts > 0);
+
+            Console.WriteLine("Спроби вичерпано. До побачення.");
+            return false;
+        }
+
+        static void PurchaseFeed()
+        {
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("=== ЗАКУПІВЛЯ КОРМІВ ===");
+            Console.ResetColor();
+
+            List<FeedItem> currentPurchase = new List<FeedItem>();
+            double budgetLimit = 10000;
+            double currentSpent = 0;
+
+            Console.Write("Скільки видів корму ви хочете додати? (мінімум 5): ");
+            int count;
+            while (!int.TryParse(Console.ReadLine(), out count) || count < 1)
+            {
+                Console.WriteLine("Будь ласка, введіть коректне число (більше 0).");
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                Console.WriteLine($"\n--- Товар #{i + 1} ---");
+                FeedItem item = new FeedItem();
+
+                Console.Write("Назва корму: ");
+                item.Name = Console.ReadLine();
+
+                if (item.Name.Length < 3)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Помилка: Назва надто коротка! Цей товар пропущено.");
+                    Console.ResetColor();
+                    continue;
+                }
+
+                do
+                {
+                    Console.Write("Ціна за кг (грн): ");
+                } while (!double.TryParse(Console.ReadLine(), out item.PricePerKg) || item.PricePerKg <= 0);
+
+                do
+                {
+                    Console.Write("Вага (кг): ");
+                } while (!double.TryParse(Console.ReadLine(), out item.Weight) || item.Weight <= 0);
+
+                double cost = item.PricePerKg * item.Weight;
+
+                if (currentSpent + cost > budgetLimit)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"УВАГА: Ліміт бюджету ({budgetLimit}) перевищено! Закупівлю зупинено.");
+                    Console.ResetColor();
+                    break;
+                }
+
+                Console.Write("Це преміум корм? (так/ні): ");
+                string answer = Console.ReadLine().ToLower();
+                item.IsPremium = (answer == "так" || answer == "yes" || answer == "+");
+
+                currentSpent += cost;
+                currentPurchase.Add(item);
+            }
+
+            Console.Clear();
+            Console.WriteLine("=== ЗВІТ ПО ЗАКУПІВЛІ ===");
+
+            double totalSum = 0;
+            double maxPrice = 0;
+            string mostExpensiveName = "";
+            int premiumCount = 0;
+
+            Console.WriteLine("{0,-15} | {1,-10} | {2,-10} | {3,-10}", "Назва", "Ціна", "Вага", "Сума");
+            Console.WriteLine(new string('-', 55));
+
+            foreach (var item in currentPurchase)
+            {
+                double itemTotal = item.PricePerKg * item.Weight;
+                totalSum += itemTotal;
+
+                if (item.PricePerKg > maxPrice)
+                {
+                    maxPrice = item.PricePerKg;
+                    mostExpensiveName = item.Name;
+                }
+
+                if (item.IsPremium)
+                {
+                    premiumCount++;
+                }
+
+                Console.WriteLine("{0,-15} | {1,-10} | {2,-10} | {3,-10}",
+                    item.Name, item.PricePerKg, item.Weight, itemTotal);
+            }
+
+            double averagePrice = currentPurchase.Count > 0 ? totalSum / currentPurchase.Count : 0;
+
+            Console.WriteLine(new string('=', 55));
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"ЗАГАЛЬНА СУМА ЗАКУПІВЛІ: {totalSum} грн");
+            Console.WriteLine($"Середня вартість позиції: {Math.Round(averagePrice, 2)} грн");
+            Console.WriteLine($"Найдорожчий корм (за кг): {mostExpensiveName} ({maxPrice} грн)");
+            Console.WriteLine($"Кількість преміум-кормів: {premiumCount}");
+            Console.ResetColor();
+
+            Pause();
         }
 
         static void ShowMenu()
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("=============================================\r\n    Ласкаво просимо до зоопарку         \r\n             \"ДИКИЙ СВІТ\"   \r\n==============================================");
-            Console.WriteLine("");
             Console.ResetColor();
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("\n МЕНЮ:");
-            Console.WriteLine("1.Введення даних про тварин");
+            Console.WriteLine("1. Введення даних про тварин");
             Console.WriteLine("2. Ведення даних про види");
             Console.WriteLine("3. Ведення даних про доглядачів");
             Console.WriteLine("4. Графік годування");
             Console.WriteLine("5. Фіксація стану здоров’я тварин");
             Console.WriteLine("6. Фільтр тварин за видом");
-            Console.WriteLine("7. Продаж квитків");
+            Console.WriteLine("7. Закупівля кормів (РОБОЧИЙ ПУНКТ)");
             Console.WriteLine("8. Вихід");
             Console.ResetColor();
         }
-        
+
         static void ManageAnimals()
-        {
-            Console.Clear();
-            Console.WriteLine("Функція управління тваринами ще не реалізована.");
-            Pause();
-        }
+        { Console.WriteLine("В розробці..."); Pause(); }
         static void ManageSpecies()
-        {
-            Console.Clear();
-            Console.WriteLine("Функція управління видами ще не реалізована.");
-            Pause();
-        }
+        { Console.WriteLine("В розробці..."); Pause(); }
         static void ManageCaretakers()
-        {
-            Console.Clear();
-            Console.WriteLine("Функція управління доглядачами ще не реалізована.");
-            Pause();
-        }
+        { Console.WriteLine("В розробці..."); Pause(); }
         static void ManageFeedingSchedule()
-        {
-            Console.Clear();
-            Console.WriteLine("Функція управління графіком годування ще не реалізована.");
-            Pause();
-        }
+        { Console.WriteLine("В розробці..."); Pause(); }
         static void ManageHealthRecords()
-        {
-            Console.Clear();
-            Console.WriteLine("Функція управління станом здоров’я тварин ще не реалізована.");
-            Pause();
-        }
-        static void FilterBySpecies()
-        {
-            Console.Clear();
-            Console.WriteLine("Функція фільтрації тварин за видом ще не реалізована.");
-            Pause();
-        }
+        { Console.WriteLine("В розробці..."); Pause(); }
+        static void FilterBySpecies() 
+        { Console.WriteLine("В розробці..."); Pause(); }
 
         static void Pause()
         {
             Console.ResetColor();
-            Console.WriteLine("\nНатисніть Enter, щоб повернутися до головного меню...");
+            Console.WriteLine("\nНатисніть Enter, щоб продовжити...");
             Console.ReadLine();
         }
     }
