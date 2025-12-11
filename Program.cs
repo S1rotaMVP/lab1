@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
 using System.Text;
+
 
 namespace ConsoleApp1
 {
     struct FeedItem
     {
+        public int Id;
         public string Name;
         public double PricePerKg;
         public double Weight;
@@ -14,25 +18,73 @@ namespace ConsoleApp1
 
     internal class Program
     {
-        static List<FeedItem> inventory = new List<FeedItem>();
+       
+        static string inventoryPath = "inventory.csv";
+        static string usersPath = "users.csv";
 
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
 
-            if (!Login())
-            {
-                return;
-            }
+            CheckAndCreateFiles();
 
+            while (true)
+            {
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("=== ВІТАЄМО В СИСТЕМІ ЗООПАРКУ ===");
+                Console.ResetColor();
+                Console.WriteLine("1. Вхід (Авторизація)");
+                Console.WriteLine("2. Реєстрація нового користувача");
+                Console.WriteLine("3. Вихід");
+                Console.Write("Виберіть дію: ");
+
+                string choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1":
+                        if (Login())
+                        {
+                            RunZooMainMenu();
+                        }
+                        break;
+                    case "2":
+                        Register();
+                        break;
+                    case "3":
+                        return;
+                    default:
+                        Console.WriteLine("Невірний вибір.");
+                        Pause();
+                        break;
+                }
+            }
+        }
+
+        static void RunZooMainMenu()
+        {
             bool isRunning = true;
             while (isRunning)
             {
                 Console.Clear();
-                ShowMainMenu();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("=============================================\r\n    Ласкаво просимо до зоопарку         \r\n             \"ДИКИЙ СВІТ\"   \r\n==============================================");
+                Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("\n ГОЛОВНЕ МЕНЮ:");
+                Console.WriteLine("1. Введення даних про тварин");
+                Console.WriteLine("2. Ведення даних про види");
+                Console.WriteLine("3. Ведення даних про доглядачів");
+                Console.WriteLine("4. Графік годування");
+                Console.WriteLine("5. Фіксація стану здоров’я тварин");
+                Console.WriteLine("6. Фільтр тварин за видом");
+                Console.WriteLine("7. УПРАВЛІННЯ СКЛАДОМ КОРМІВ (CSV)");
+                Console.WriteLine("8. Вихід з акаунту");
+                Console.ResetColor();
 
-                Console.Write("\n Виберіть опцію (1-8): ");
+                Console.Write("\nВиберіть опцію (1-8): ");
                 string choice = Console.ReadLine();
 
                 switch (choice)
@@ -44,167 +96,331 @@ namespace ConsoleApp1
                     case "5": ManageHealthRecords(); break;
                     case "6": FilterBySpecies(); break;
                     case "7": FeedInventoryMenu(); break;
-                    case "8":
-                        Console.WriteLine("Вихід з програми. До побачення!");
-                        isRunning = false;
-                        break;
+                    case "8": isRunning = false; break;
                     default:
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Невірний вибір. Спробуйте ще раз.");
-                        Console.ResetColor();
+                        Console.WriteLine("Невірний вибір.");
                         Pause();
                         break;
                 }
             }
         }
 
+        static void CheckAndCreateFiles()
+        {
+            if (!File.Exists(usersPath))
+            {
+                File.WriteAllText(usersPath, "Id,Email,PasswordHash\n");
+            }
+
+            if (!File.Exists(inventoryPath))
+            {
+                File.WriteAllText(inventoryPath, "Id,Name,Price,Weight,IsPremium\n");
+            }
+        }
+
+        static int GenerateNewId(string path)
+        {
+            if (!File.Exists(path)) return 1;
+
+            var lines = File.ReadAllLines(path);
+            if (lines.Length <= 1) return 1;
+
+            int maxId = 0;
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var parts = lines[i].Split(',');
+                if (parts.Length > 0 && int.TryParse(parts[0], out int currentId))
+                {
+                    if (currentId > maxId) maxId = currentId;
+                }
+            }
+
+            return maxId + 1;
+        }
+
+        static string HashPassword(string password)
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    builder.Append(bytes[i].ToString("x2"));
+                }
+                return builder.ToString();
+            }
+        }
+
+        static void Register()
+        {
+            Console.Clear();
+            Console.WriteLine("=== РЕЄСТРАЦІЯ ===");
+            Console.Write("Введіть Email: ");
+            string email = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains("@"))
+            {
+                Console.WriteLine("Некоректний Email.");
+                Pause();
+                return;
+            }
+
+            string[] lines = File.ReadAllLines(usersPath);
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var parts = lines[i].Split(',');
+                if (parts.Length > 1 && parts[1] == email)
+                {
+                    Console.WriteLine("Користувач з таким Email вже існує.");
+                    Pause();
+                    return;
+                }
+            }
+
+            Console.Write("Введіть пароль: ");
+            string pass = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(pass) || pass.Length < 4)
+            {
+                Console.WriteLine("Пароль надто короткий.");
+                Pause();
+                return;
+            }
+
+            int newId = GenerateNewId(usersPath);
+            string hash = HashPassword(pass);
+            string newLine = $"{newId},{email},{hash}";
+
+            File.AppendAllText(usersPath, newLine + Environment.NewLine);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Реєстрація успішна! Тепер увійдіть.");
+            Console.ResetColor();
+            Pause();
+        }
+
         static bool Login()
         {
-            string correctLogin = "admin";
-            string correctPass = "12345";
-            int attempts = 3;
+            Console.Clear();
+            Console.WriteLine("=== ВХІД ===");
+            Console.Write("Email: ");
+            string email = Console.ReadLine();
+            Console.Write("Пароль: ");
+            string pass = Console.ReadLine();
 
-            do
+            string hashInput = HashPassword(pass);
+            string[] lines = File.ReadAllLines(usersPath);
+
+            for (int i = 1; i < lines.Length; i++)
             {
-                Console.Clear();
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("=== ВХІД У СИСТЕМУ ЗООПАРКУ ===");
-                Console.ResetColor();
+                var parts = lines[i].Split(',');
+                if (parts.Length < 3) continue;
 
-                Console.Write("Введіть логін: ");
-                string inputLogin = Console.ReadLine();
-
-                Console.Write("Введіть пароль: ");
-                string inputPass = Console.ReadLine();
-
-                if (inputLogin == correctLogin && inputPass == correctPass)
+                if (parts[1] == email && parts[2] == hashInput)
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("Доступ дозволено!");
+                    Console.WriteLine("Авторизація успішна!");
                     Console.ResetColor();
                     System.Threading.Thread.Sleep(1000);
                     return true;
                 }
-                else
-                {
-                    attempts--;
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Помилка! Невірний логін або пароль. Залишилось спроб: {attempts}");
-                    Console.ResetColor();
-                    Console.ReadKey();
-                }
+            }
 
-            } while (attempts > 0);
-
-            Console.WriteLine("Спроби вичерпано. До побачення.");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Невірний логін або пароль.");
+            Console.ResetColor();
+            Pause();
             return false;
         }
 
         static void FeedInventoryMenu()
         {
-            bool backToMain = false;
-            while (!backToMain)
+            bool back = false;
+            while (!back)
             {
                 Console.Clear();
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("=== СКЛАД КОРМІВ ===");
+                Console.WriteLine("=== СКЛАД КОРМІВ (ФАЙЛОВА СИСТЕМА) ===");
                 Console.ResetColor();
-                Console.WriteLine("1. Додати елементи (мінімум 5)");
-                Console.WriteLine("2. Вивести всі елементи");
-                Console.WriteLine("3. Пошук елемента");
-                Console.WriteLine("4. Видалення елемента");
+                Console.WriteLine("1. Додати запис");
+                Console.WriteLine("2. Переглянути всі (Таблиця)");
+                Console.WriteLine("3. Видалити запис");
+                Console.WriteLine("4. Пошук");
                 Console.WriteLine("5. Сортування");
                 Console.WriteLine("6. Статистика");
-                Console.WriteLine("0. Повернутися в головне меню");
-                Console.WriteLine("======================================");
-                Console.Write("Ваш вибір: ");
+                Console.WriteLine("0. Назад до головного меню");
+                Console.Write("Вибір: ");
 
-                string subChoice = Console.ReadLine();
-
-                switch (subChoice)
+                string sub = Console.ReadLine();
+                switch (sub)
                 {
-                    case "1": AddItems(); break;
-                    case "2": PrintTable(); Pause(); break;
-                    case "3": SearchItem(); break;
-                    case "4": DeleteItem(); break;
+                    case "1": AddItem(); break;
+                    case "2": PrintItems(); Pause(); break;
+                    case "3": DeleteItem(); break;
+                    case "4": SearchItem(); break;
                     case "5": SortItems(); break;
                     case "6": ShowStatistics(); break;
-                    case "0": backToMain = true; break;
-                    default: Console.WriteLine("Невірний вибір."); Pause(); break;
+                    case "0": back = true; break;
+                    default: Console.WriteLine("Помилка."); Pause(); break;
                 }
             }
         }
 
-        static void AddItems()
+        static List<FeedItem> ReadAllItems()
+        {
+            List<FeedItem> items = new List<FeedItem>();
+
+            if (!File.Exists(inventoryPath)) return items;
+
+            string[] lines = File.ReadAllLines(inventoryPath);
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                string[] parts = line.Split(',');
+                if (parts.Length < 5) continue;
+
+                try
+                {
+                    FeedItem item = new FeedItem();
+                    item.Id = int.Parse(parts[0]);
+                    item.Name = parts[1];
+                    item.PricePerKg = double.Parse(parts[2]);
+                    item.Weight = double.Parse(parts[3]);
+                    item.IsPremium = bool.Parse(parts[4]);
+
+                    items.Add(item);
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+            return items;
+        }
+
+        static void SaveAllItems(List<FeedItem> items)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("Id,Name,Price,Weight,IsPremium");
+
+            foreach (var item in items)
+            {
+                sb.AppendLine($"{item.Id},{item.Name},{item.PricePerKg},{item.Weight},{item.IsPremium}");
+            }
+
+            File.WriteAllText(inventoryPath, sb.ToString());
+        }
+
+        static void AddItem()
         {
             Console.Clear();
-            Console.WriteLine("Скільки записів ви хочете додати?");
-            int count;
-            while (!int.TryParse(Console.ReadLine(), out count) || count < 1)
+            Console.WriteLine("--- Додавання ---");
+
+            FeedItem item = new FeedItem();
+            item.Id = GenerateNewId(inventoryPath);
+
+            Console.Write("Назва: ");
+            item.Name = Console.ReadLine();
+
+           
+            if (item.Name.Contains(","))
+                item.Name = item.Name.Replace(",", " ");
+
+            do
             {
-                Console.WriteLine("Введіть коректне число > 0:");
-            }
+                Console.Write("Ціна: ");
+            } while (!double.TryParse(Console.ReadLine(), out item.PricePerKg) || item.PricePerKg <= 0);
 
-            for (int i = 0; i < count; i++)
+            do
             {
-                Console.WriteLine($"\n--- Запис #{i + 1} ---");
-                FeedItem item = new FeedItem();
+                Console.Write("Вага: ");
+            } while (!double.TryParse(Console.ReadLine(), out item.Weight) || item.Weight <= 0);
 
-                Console.Write("Назва: ");
-                item.Name = Console.ReadLine();
+            Console.Write("Преміум (так/ні): ");
+            string p = Console.ReadLine().ToLower();
+            item.IsPremium = (p == "так" || p == "yes" || p == "+");
 
-                do
-                {
-                    Console.Write("Ціна за кг: ");
-                } while (!double.TryParse(Console.ReadLine(), out item.PricePerKg) || item.PricePerKg <= 0);
+            string line = $"{item.Id},{item.Name},{item.PricePerKg},{item.Weight},{item.IsPremium}";
+            File.AppendAllText(inventoryPath, line + Environment.NewLine);
 
-                do
-                {
-                    Console.Write("Вага (кг): ");
-                } while (!double.TryParse(Console.ReadLine(), out item.Weight) || item.Weight <= 0);
-
-                Console.Write("Преміум (так/ні): ");
-                string p = Console.ReadLine().ToLower();
-                item.IsPremium = (p == "так" || p == "yes" || p == "+");
-
-                inventory.Add(item);
-                Console.WriteLine("Додано!");
-            }
+            Console.WriteLine("Запис збережено у файл!");
             Pause();
         }
 
-        static void PrintTable()
+        static void PrintItems()
         {
-            if (inventory.Count == 0)
+            var items = ReadAllItems();
+            if (items.Count == 0)
             {
-                Console.WriteLine("Список порожній.");
+                Console.WriteLine("Файл порожній або відсутній.");
                 return;
             }
 
-            Console.WriteLine("\n{0,-5} | {1,-15} | {2,-10} | {3,-10} | {4,-10}", "№", "Назва", "Ціна", "Вага", "Преміум");
+            Console.WriteLine("{0,-5} | {1,-15} | {2,-10} | {3,-10} | {4,-10}", "ID", "Назва", "Ціна", "Вага", "Преміум");
             Console.WriteLine(new string('-', 60));
 
-            for (int i = 0; i < inventory.Count; i++)
+            foreach (var item in items)
             {
-                FeedItem it = inventory[i];
                 Console.WriteLine("{0,-5} | {1,-15} | {2,-10} | {3,-10} | {4,-10}",
-                    i + 1, it.Name, it.PricePerKg, it.Weight, it.IsPremium ? "Так" : "Ні");
+                    item.Id, item.Name, item.PricePerKg, item.Weight, item.IsPremium ? "Так" : "Ні");
             }
+        }
+
+        static void DeleteItem()
+        {
+            PrintItems();
+            Console.Write("\nВведіть ID для видалення: ");
+            if (int.TryParse(Console.ReadLine(), out int id))
+            {
+                var items = ReadAllItems();
+                bool found = false;
+
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (items[i].Id == id)
+                    {
+                        items.RemoveAt(i);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found)
+                {
+                    SaveAllItems(items);
+                    Console.WriteLine("Видалено успішно.");
+                }
+                else
+                {
+                    Console.WriteLine("ID не знайдено.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Некоректний ID.");
+            }
+            Pause();
         }
 
         static void SearchItem()
         {
             Console.Clear();
             Console.Write("Введіть назву для пошуку: ");
-            string query = Console.ReadLine().ToLower();
+            string q = Console.ReadLine().ToLower();
+
+            var items = ReadAllItems();
             bool found = false;
 
-            Console.WriteLine("\nРезультати пошуку:");
-            foreach (var item in inventory)
+            Console.WriteLine("\nРезультати:");
+            foreach (var item in items)
             {
-                if (item.Name.ToLower().Contains(query))
+                if (item.Name.ToLower().Contains(q))
                 {
-                    Console.WriteLine($"Знайдено: {item.Name} - {item.PricePerKg} грн/кг ({item.Weight} кг)");
+                    Console.WriteLine($"ID: {item.Id} | {item.Name} - {item.PricePerKg} грн");
                     found = true;
                 }
             }
@@ -213,127 +429,67 @@ namespace ConsoleApp1
             Pause();
         }
 
-        static void DeleteItem()
-        {
-            Console.Clear();
-            PrintTable();
-            Console.Write("\nВведіть номер (№) елемента для видалення: ");
-
-            if (int.TryParse(Console.ReadLine(), out int index))
-            {
-                int realIndex = index - 1;
-
-                if (realIndex >= 0 && realIndex < inventory.Count)
-                {
-                    Console.WriteLine($"Видалено елемент: {inventory[realIndex].Name}");
-                    inventory.RemoveAt(realIndex);
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Помилка: Такого номеру немає в списку.");
-                    Console.ResetColor();
-                }
-            }
-            else
-            {
-                Console.WriteLine("Помилка: Введіть число.");
-            }
-            Pause();
-        }
-
         static void SortItems()
         {
-            Console.Clear();
-
-            if (inventory.Count < 2)
+            var items = ReadAllItems();
+            if (items.Count < 2)
             {
-                Console.WriteLine("Мало даних для сортування.");
+                Console.WriteLine("Мало даних.");
                 Pause();
                 return;
             }
 
-            for (int i = 0; i < inventory.Count - 1; i++)
+            for (int i = 0; i < items.Count - 1; i++)
             {
-                for (int j = 0; j < inventory.Count - i - 1; j++)
+                for (int j = 0; j < items.Count - i - 1; j++)
                 {
-                    if (inventory[j].PricePerKg > inventory[j + 1].PricePerKg)
+                    if (items[j].PricePerKg > items[j + 1].PricePerKg)
                     {
-                        FeedItem temp = inventory[j];
-                        inventory[j] = inventory[j + 1];
-                        inventory[j + 1] = temp;
+                        var temp = items[j];
+                        items[j] = items[j + 1];
+                        items[j + 1] = temp;
                     }
                 }
             }
 
-            Console.WriteLine("Список відсортовано за ціною (зростання).");
-            PrintTable();
+            Console.WriteLine("Відсортовано (локально).");
+            Console.WriteLine("{0,-5} | {1,-15} | {2,-10} | {3,-10}", "ID", "Назва", "Ціна", "Вага");
+
+            foreach (var item in items)
+            {
+                Console.WriteLine("{0,-5} | {1,-15} | {2,-10} | {3,-10}", item.Id, item.Name, item.PricePerKg, item.Weight);
+            }
             Pause();
         }
 
         static void ShowStatistics()
         {
-            Console.Clear();
-            if (inventory.Count == 0)
+            var items = ReadAllItems();
+            if (items.Count == 0)
             {
                 Console.WriteLine("Дані відсутні.");
                 Pause();
                 return;
             }
 
-            double totalSum = 0;
-            double maxPrice = double.MinValue;
-            double minPrice = double.MaxValue;
-            string maxName = "";
-            string minName = "";
+            double sum = 0;
+            double min = double.MaxValue;
+            double max = double.MinValue;
 
-            foreach (var item in inventory)
+            foreach (var item in items)
             {
-                totalSum += (item.PricePerKg * item.Weight);
-
-                if (item.PricePerKg > maxPrice)
-                {
-                    maxPrice = item.PricePerKg;
-                    maxName = item.Name;
-                }
-
-                if (item.PricePerKg < minPrice)
-                {
-                    minPrice = item.PricePerKg;
-                    minName = item.Name;
-                }
+                sum += (item.PricePerKg * item.Weight);
+                if (item.PricePerKg < min) min = item.PricePerKg;
+                if (item.PricePerKg > max) max = item.PricePerKg;
             }
 
-            double avgPrice = totalSum / inventory.Count;
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("=== СТАТИСТИКА СКЛАДУ ===");
-            Console.ResetColor();
-            Console.WriteLine($"Кількість елементів: {inventory.Count}");
-            Console.WriteLine($"Загальна вартість складу: {totalSum} грн");
-            Console.WriteLine($"Середня вартість позиції: {Math.Round(avgPrice, 2)} грн");
-            Console.WriteLine($"Найдорожчий корм: {maxName} ({maxPrice} грн)");
-            Console.WriteLine($"Найдешевший корм: {minName} ({minPrice} грн)");
-
+            Console.WriteLine("=== СТАТИСТИКА ===");
+            Console.WriteLine($"Кількість записів: {items.Count}");
+            Console.WriteLine($"Загальна вартість: {sum}");
+            Console.WriteLine($"Мін. ціна: {min}");
+            Console.WriteLine($"Макс. ціна: {max}");
+            Console.WriteLine($"Середня ціна: {Math.Round(sum / items.Count, 2)}");
             Pause();
-        }
-
-        static void ShowMainMenu()
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("=============================================\r\n    Ласкаво просимо до зоопарку         \r\n             \"ДИКИЙ СВІТ\"   \r\n==============================================");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("\n ГОЛОВНЕ МЕНЮ:");
-            Console.WriteLine("1. Введення даних про тварин");
-            Console.WriteLine("2. Ведення даних про види");
-            Console.WriteLine("3. Ведення даних про доглядачів");
-            Console.WriteLine("4. Графік годування");
-            Console.WriteLine("5. Фіксація стану здоров’я тварин");
-            Console.WriteLine("6. Фільтр тварин за видом");
-            Console.WriteLine("7. УПРАВЛІННЯ ЗАПАСАМИ КОРМІВ");
-            Console.WriteLine("8. Вихід");
-            Console.ResetColor();
         }
 
         static void ManageAnimals() { Console.WriteLine("В розробці..."); Pause(); }
@@ -345,8 +501,7 @@ namespace ConsoleApp1
 
         static void Pause()
         {
-            Console.ResetColor();
-            Console.WriteLine("\nНатисніть Enter, щоб продовжити...");
+            Console.WriteLine("\nНатисніть Enter...");
             Console.ReadLine();
         }
     }
